@@ -1,24 +1,8 @@
-"""Titanic survival decision tree classifier.
-
-EECE 5644, Assignment 04. This script trains a decision tree that predicts
-whether a Titanic passenger survived (the `Survived` column, 0 = died,
-1 = survived) from the passenger record. It runs top to bottom in eight steps:
-load, preprocess, split, tune, evaluate, rank feature importances, draw two
-figures, and print a plain-language summary.
-
-Run it from inside the assignment-04 folder so the relative data path resolves:
-
-    python titanic_decision_tree.py
-"""
-
-# ----------------------------------------------------------------------------
-# Setup and configuration
-# ----------------------------------------------------------------------------
 from pathlib import Path
 
 import matplotlib
 
-matplotlib.use("Agg")  # headless: save figures to disk, never open a window
+matplotlib.use("Agg")  
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,13 +18,10 @@ from sklearn.metrics import (
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 
-# One seed, set once, and reused for the split and the model.
 SEED = 42
-# Dataset file, read from the same folder as this script.
 DATA_PATH = "titanic.csv"
 TARGET = "Survived"
 
-# The features actually fed to the model, in a fixed order.
 FEATURES = [
     "Pclass",
     "Sex",
@@ -54,10 +35,8 @@ FEATURES = [
     "IsAlone",
 ]
 
-# Columns dropped because they identify a passenger rather than describe them.
 DROP_COLS = ["PassengerId", "Name", "Ticket", "Cabin"]
 
-# Readable numeric encodings for the two text categoricals.
 SEX_MAP = {"male": 0, "female": 1}
 EMBARKED_MAP = {"S": 0, "C": 1, "Q": 2}
 
@@ -68,14 +47,9 @@ FIG_DIR.mkdir(exist_ok=True)
 
 plt.rcParams["figure.dpi"] = 110
 
-# Hand-picked palette, kept consistent across figures.
 COLOR_BAR = "#2c7fb8"
 COLOR_ACCENT = "#c0392b"
 
-
-# ----------------------------------------------------------------------------
-# Small helpers
-# ----------------------------------------------------------------------------
 def step(number, title):
     """Print a numbered step banner so progress is easy to follow."""
     line = "=" * 74
@@ -100,9 +74,6 @@ def classification_metrics(y_true, y_pred):
     }
 
 
-# ----------------------------------------------------------------------------
-# Pipeline
-# ----------------------------------------------------------------------------
 def load_data():
     """Step 1: read the CSV and report shape, dtypes and missing values."""
     step(1, "Load and inspect")
@@ -121,17 +92,14 @@ def load_data():
 def preprocess(df):
     """Step 2: engineer features, impute, encode, and select the feature matrix."""
     step(2, "Preprocess")
-    data = df.copy()  # never mutate the frame we were handed
-
-    # Binary flag for a recorded cabin, engineered before Cabin is dropped.
+    data = df.copy() 
+    
     data["HasCabin"] = data["Cabin"].notna().astype(int)
     print("Engineered HasCabin from Cabin (1 = cabin recorded, 0 = missing).")
 
-    # Drop identifiers and the too-sparse Cabin column.
     data = data.drop(columns=DROP_COLS)
     print(f"Dropped columns: {', '.join(DROP_COLS)}")
 
-    # Impute the two columns with missing values.
     age_median = data["Age"].median()
     data["Age"] = data["Age"].fillna(age_median)
     embarked_mode = data["Embarked"].mode()[0]
@@ -139,12 +107,10 @@ def preprocess(df):
     print(f"Imputed Age with median ({age_median:.1f}) and "
           f"Embarked with mode ('{embarked_mode}').")
 
-    # Family-structure features.
     data["FamilySize"] = data["SibSp"] + data["Parch"] + 1
     data["IsAlone"] = (data["FamilySize"] == 1).astype(int)
     print("Engineered FamilySize (SibSp + Parch + 1) and IsAlone (FamilySize == 1).")
 
-    # Encode the text categoricals numerically.
     data["Sex"] = data["Sex"].map(SEX_MAP)
     data["Embarked"] = data["Embarked"].map(EMBARKED_MAP)
     print(f"Encoded Sex {SEX_MAP} and Embarked {EMBARKED_MAP}.")
@@ -229,7 +195,6 @@ def make_figures(model, importances, test_accuracy):
     """Step 7: save the tree diagram and the feature-importance bar chart."""
     step(7, "Save figures")
 
-    # Figure 1: the trained decision tree.
     fig, ax = plt.subplots(figsize=(24, 13))
     plot_tree(
         model,
@@ -250,8 +215,7 @@ def make_figures(model, importances, test_accuracy):
     plt.close(fig)
     print(f"Saved {tree_path}")
 
-    # Figure 2: feature importances, most important on top.
-    ordered = importances.sort_values()  # ascending, so barh puts largest at top
+    ordered = importances.sort_values()  
     fig, ax = plt.subplots(figsize=(9, 5))
     bars = ax.barh(ordered.index, ordered.values, color=COLOR_BAR)
     for bar, value in zip(bars, ordered.values):
